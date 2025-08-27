@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduShare - Study Material Viewer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PDF.js library for rendering PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -246,6 +248,49 @@
             box-shadow: 0 6px 20px rgba(106, 17, 203, 0.4);
         }
 
+        /* Search Section */
+        .search-section {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            font-size: 1rem;
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .search-btn {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .search-results {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--text);
+            opacity: 0.8;
+        }
+
         /* Content Display */
         .resources-header {
             display: flex;
@@ -278,6 +323,10 @@
         .video-card.visible {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        .video-card.hidden {
+            display: none;
         }
 
         .video-card:hover {
@@ -439,6 +488,105 @@
             color: var(--primary);
         }
 
+        /* PDF Viewer Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            overflow: auto;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            margin: 2% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 1000px;
+            border-radius: 10px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+        }
+
+        .close-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pdf-container {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 70vh;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            overflow: auto;
+        }
+
+        #pdfViewer {
+            width: 100%;
+            height: 100%;
+        }
+
+        .pdf-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding: 10px;
+            background: var(--bg);
+            border-radius: 5px;
+        }
+
+        .pdf-controls button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* No Results Message */
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: var(--text);
+            opacity: 0.7;
+        }
+
+        .no-results i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
         /* Responsive Design */
         @media (max-width: 900px) {
             .main-content {
@@ -472,6 +620,16 @@
                 flex-direction: column;
                 gap: 10px;
                 text-align: center;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+                padding: 10px;
+            }
+
+            .search-container {
+                flex-direction: column;
             }
         }
 
@@ -512,6 +670,23 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* PDF.js viewer customization */
+        .pdf-viewer-container {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        
+        .pdf-page {
+            margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .pdf-page canvas {
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
@@ -523,17 +698,13 @@
                 <span>EduShare</span>
             </div>
             <div class="nav-links">
-                <a href="#">Home</a>
-                <a href="#">Study Materials</a>
-                <a href="#">About</a>
-                <a href="#">Contact</a>
             </div>
             <div class="nav-actions">
                 <button class="theme-toggle" id="themeToggle">
                     <i class="fas fa-moon"></i>
                 </button>
                 <a href="https://t.me/paid_promo0x" class="support-btn" target="_blank">
-                    <i class="fab fa-telegram"></i> Support
+                    <i class="fab fa-telegram"></i> Report Bug
                 </a>
             </div>
         </div>
@@ -573,6 +744,18 @@
                     <h2>Your Study Materials</h2>
                     <div id="resourcesCount">0 Videos, 0 PDFs</div>
                 </div>
+
+                <div class="search-section">
+                    <div class="search-container">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search by title...">
+                        <button class="search-btn" id="searchBtn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="search-results" id="searchResults">
+                        Showing all resources
+                    </div>
+                </div>
                 
                 <div class="video-container" id="videoContainer">
                     <!-- Content will be generated here -->
@@ -585,7 +768,7 @@
                         <a href="#" class="share-btn whatsapp" id="whatsappShare">
                             <i class="fab fa-whatsapp"></i>
                         </a>
-                        <a href="https://t.me/share/share?url=window.location.href" class="share-btn telegram" id="telegramShare">
+                        <a href="#" class="share-btn telegram" id="telegramShare">
                             <i class="fab fa-telegram"></i>
                         </a>
                         <a href="#" class="share-btn facebook" id="facebookShare">
@@ -597,6 +780,28 @@
                     </div>
                 </div>
             </section>
+        </div>
+    </div>
+
+    <!-- PDF Viewer Modal -->
+    <div class="modal" id="pdfModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="pdfModalTitle">PDF Document</h2>
+                <button class="close-btn" id="closePdfModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="pdf-container" id="pdfViewerContainer">
+                <div class="pdf-controls">
+                    <button id="prevPage"><i class="fas fa-arrow-left"></i> Previous</button>
+                    <span id="pageInfo">Page 1 of 1</span>
+                    <button id="nextPage">Next <i class="fas fa-arrow-right"></i></button>
+                </div>
+                <div class="pdf-viewer-container" id="pdfViewer">
+                    <!-- PDF will be rendered here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -612,6 +817,10 @@
     </footer>
 
     <script>
+        // Set the PDF.js worker path
+        pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
         document.addEventListener('DOMContentLoaded', function() {
             const uploadArea = document.getElementById('uploadArea');
             const uploadSection = document.getElementById('uploadSection');
@@ -622,8 +831,23 @@
             const resourcesCount = document.getElementById('resourcesCount');
             const themeToggle = document.getElementById('themeToggle');
             const shareButtons = document.querySelectorAll('.share-btn');
+            const pdfModal = document.getElementById('pdfModal');
+            const pdfModalTitle = document.getElementById('pdfModalTitle');
+            const closePdfModal = document.getElementById('closePdfModal');
+            const pdfViewerContainer = document.getElementById('pdfViewer');
+            const prevPageBtn = document.getElementById('prevPage');
+            const nextPageBtn = document.getElementById('nextPage');
+            const pageInfo = document.getElementById('pageInfo');
+            const searchInput = document.getElementById('searchInput');
+            const searchBtn = document.getElementById('searchBtn');
+            const searchResults = document.getElementById('searchResults');
             
-            // Current resources for sharing
+            // PDF viewing variables
+            let currentPdf = null;
+            let currentPageNum = 1;
+            let totalPages = 1;
+            
+            // Current resources for sharing and searching
             let currentResources = [];
             let videoCount = 0;
             let pdfCount = 0;
@@ -715,7 +939,7 @@
                         }
                         
                         // Store resource for sharing
-                        currentResources.push({ title, url, type });
+                        currentResources.push({ title, url, type, element: null });
                         
                         // Create resource card with delay for staggered loading
                         setTimeout(() => {
@@ -727,6 +951,7 @@
                 if (currentResources.length > 0) {
                     // Update resources count
                     resourcesCount.textContent = `${videoCount} Videos, ${pdfCount} PDFs`;
+                    searchResults.textContent = `Showing all ${currentResources.length} resources`;
                     
                     // Show content section and hide upload section
                     contentSection.style.display = 'block';
@@ -748,6 +973,7 @@
                 const resourceCard = document.createElement('div');
                 resourceCard.className = 'video-card';
                 resourceCard.dataset.index = index;
+                resourceCard.dataset.title = title.toLowerCase();
                 
                 resourceCard.innerHTML = `
                     <div class="video-header">
@@ -760,7 +986,7 @@
                     // Create a preview for video with play button
                     resourceCard.innerHTML += `
                         <div class="video-preview" data-url="${url}" data-title="${title}">
-                            <img src="https://i.redd.it/kyu-nahi-ho-rahi-padhai-v0-im1xf6f2u6ae1.jpg?width=1069&format=pjpg&auto=webp&s=9681edcfe096c1ecb0ef8daf96b0434b69395d3f" alt="${title}" onerror="this.src='data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22320%22 height%3D%22180%22 viewBox%3D%220 0 320 180%22%3E%3Crect fill%3D%22%236a11cb%22 width%3D%22320%22 height%3D%22180%22%2F%3E%3Ctext fill%3D%22%23fff%22 font-family%3D%22sans-serif%22 font-size%3D%2232%22 text-anchor%3D%22middle%22 x%3D%22160%22 y%3D%2296%22%3EVideo Preview%3C%2Ftext%3E%3C%2Fsvg%3E'">
+                            <img src="https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg" alt="${title}" onerror="this.src='data:image/svg+xml;charset=utf-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 width%3D%22320%22 height%3D%22180%22 viewBox%3D%220 0 320 180%22%3E%3Crect fill%3D%22%236a11cb%22 width%3D%22320%22 height%3D%22180%22%2F%3E%3Ctext fill%3D%22%23fff%22 font-family%3D%22sans-serif%22 font-size%3D%2232%22 text-anchor%3D%22middle%22 x%3D%22160%22 y%3D%2296%22%3EVideo Preview%3C%2Ftext%3E%3C%2Fsvg%3E'">
                             <div class="play-btn">
                                 <i class="fas fa-play-circle"></i>
                             </div>
@@ -791,11 +1017,19 @@
                 
                 videoContainer.appendChild(resourceCard);
                 
+                // Store reference to the element
+                currentResources[index].element = resourceCard;
+                
                 // Add click handlers for previews
-                if (type === 'video' || type === 'pdf') {
+                if (type === 'video') {
                     const previewEl = resourceCard.querySelector('[data-url]');
                     previewEl.addEventListener('click', function() {
-                        openResource(this.dataset.url, this.dataset.title, type);
+                        openVideo(this.dataset.url, this.dataset.title);
+                    });
+                } else if (type === 'pdf') {
+                    const previewEl = resourceCard.querySelector('[data-url]');
+                    previewEl.addEventListener('click', function() {
+                        openPdf(this.dataset.url, this.dataset.title);
                     });
                 }
                 
@@ -805,15 +1039,169 @@
                 }, 50);
             }
             
-            // Open resource in viewer page
-            function openResource(url, title, type) {
-                // In a real app, this would redirect to a viewer page
-                // For this example, we'll open in a new tab
-                if (type === 'video') {
-                    window.open(url, '_blank');
-                } else if (type === 'pdf') {
-                    // For PDF, we could use a PDF viewer page
-                    window.open(`/pdf-viewer.html?file=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`, '_blank');
+            // Open video in new tab
+            function openVideo(url, title) {
+                window.open(url, '_blank');
+            }
+            
+            // Open PDF in modal
+            function openPdf(url, title) {
+                pdfModalTitle.textContent = title;
+                pdfModal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                
+                // Load the PDF
+                loadPdf(url);
+            }
+            
+            // Load PDF using PDF.js
+            function loadPdf(url) {
+                // Show loading state
+                pdfViewerContainer.innerHTML = '<div style="text-align:center;padding:50px;">Loading PDF...</div>';
+                
+                // Reset page variables
+                currentPageNum = 1;
+                
+                // Load the PDF
+                const loadingTask = pdfjsLib.getDocument(url);
+                loadingTask.promise.then(function(pdf) {
+                    currentPdf = pdf;
+                    totalPages = pdf.numPages;
+                    pageInfo.textContent = `Page ${currentPageNum} of ${totalPages}`;
+                    
+                    // Render the first page
+                    renderPage(currentPageNum);
+                }).catch(function(error) {
+                    console.error('Error loading PDF:', error);
+                    pdfViewerContainer.innerHTML = `
+                        <div style="text-align:center;padding:50px;">
+                            <p>Error loading PDF. Please try again or <a href="${url}" target="_blank">open in new tab</a>.</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            // Render a specific page
+            function renderPage(pageNum) {
+                currentPdf.getPage(pageNum).then(function(page) {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    
+                    // Prepare canvas for rendering
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    
+                    // Render PDF page
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+                    
+                    const renderTask = page.render(renderContext);
+                    
+                    renderTask.promise.then(function() {
+                        // Clear the container and add the canvas
+                        pdfViewerContainer.innerHTML = '';
+                        pdfViewerContainer.appendChild(canvas);
+                        
+                        // Add page controls
+                        const controls = document.createElement('div');
+                        controls.className = 'pdf-controls';
+                        controls.innerHTML = `
+                            <button id="prevPage"><i class="fas fa-arrow-left"></i> Previous</button>
+                            <span id="pageInfo">Page ${currentPageNum} of ${totalPages}</span>
+                            <button id="nextPage">Next <i class="fas fa-arrow-right"></i></button>
+                        `;
+                        pdfViewerContainer.appendChild(controls);
+                        
+                        // Add event listeners for page navigation
+                        document.getElementById('prevPage').addEventListener('click', function() {
+                            if (currentPageNum > 1) {
+                                currentPageNum--;
+                                renderPage(currentPageNum);
+                            }
+                        });
+                        
+                        document.getElementById('nextPage').addEventListener('click', function() {
+                            if (currentPageNum < totalPages) {
+                                currentPageNum++;
+                                renderPage(currentPageNum);
+                            }
+                        });
+                    });
+                });
+            }
+            
+            // Close PDF modal
+            closePdfModal.addEventListener('click', function() {
+                pdfModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target === pdfModal) {
+                    pdfModal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            // Search functionality
+            searchBtn.addEventListener('click', performSearch);
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            function performSearch() {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                let visibleCount = 0;
+                
+                if (searchTerm === '') {
+                    // Show all resources if search is empty
+                    currentResources.forEach(resource => {
+                        if (resource.element) {
+                            resource.element.classList.remove('hidden');
+                            resource.element.classList.add('visible');
+                            visibleCount++;
+                        }
+                    });
+                    searchResults.textContent = `Showing all ${visibleCount} resources`;
+                } else {
+                    // Filter resources based on search term
+                    currentResources.forEach(resource => {
+                        if (resource.element) {
+                            if (resource.title.toLowerCase().includes(searchTerm)) {
+                                resource.element.classList.remove('hidden');
+                                resource.element.classList.add('visible');
+                                visibleCount++;
+                            } else {
+                                resource.element.classList.add('hidden');
+                                resource.element.classList.remove('visible');
+                            }
+                        }
+                    });
+                    searchResults.textContent = `Found ${visibleCount} resources matching "${searchTerm}"`;
+                }
+                
+                // Show no results message if no resources match
+                const noResultsElement = document.getElementById('noResultsMessage');
+                if (visibleCount === 0) {
+                    if (!noResultsElement) {
+                        const noResults = document.createElement('div');
+                        noResults.id = 'noResultsMessage';
+                        noResults.className = 'no-results';
+                        noResults.innerHTML = `
+                            <i class="fas fa-search"></i>
+                            <h3>No resources found</h3>
+                            <p>Try different search terms or upload a new file</p>
+                        `;
+                        videoContainer.appendChild(noResults);
+                    }
+                } else if (noResultsElement) {
+                    noResultsElement.remove();
                 }
             }
 
