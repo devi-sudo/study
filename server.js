@@ -14,10 +14,6 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/pdf-viewer', (req, res) => {
-    res.sendFile(path.join(__dirname, 'pdf-viewer.html'));
-});
-
 // API endpoint to process uploaded files
 app.post('/api/process', (req, res) => {
     try {
@@ -34,6 +30,27 @@ app.post('/api/process', (req, res) => {
     } catch (error) {
         console.error('Error processing file:', error);
         res.status(500).json({ error: 'Failed to process file' });
+    }
+});
+
+// API endpoint to search resources
+app.post('/api/search', (req, res) => {
+    try {
+        const { resources, searchTerm } = req.body;
+        
+        if (!resources || !searchTerm) {
+            return res.status(400).json({ error: 'Resources and search term are required' });
+        }
+        
+        // Filter resources based on search term
+        const filteredResources = resources.filter(resource => 
+            resource.title.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        res.json({ success: true, resources: filteredResources });
+    } catch (error) {
+        console.error('Error searching resources:', error);
+        res.status(500).json({ error: 'Failed to search resources' });
     }
 });
 
